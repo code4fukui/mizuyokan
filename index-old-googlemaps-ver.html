@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>福井 水ようかんマップ - 鯖江編（つくりかけ）</title>
+<meta name="keywords" content="水羊羹,水羊かん,水ようかん,福井,鯖江,fukui,mizuyokan,福野泰介,Taisuke Fukuno,冬,winter,お菓子,冬のお菓子"/>
+
+<meta name="description" content="もうひとつの福井の冬の味覚「水ようかん」冬限定で福井県内各地で売られる水ようかんをマップにしてみました。">
+
+<script src="https://www.google.com/jsapi"></script>
+<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script>
+
+var kcmap = {};
+(function() {
+	google.load("feeds", "1");
+	var map;
+	var infoWindow;
+	var geocoder = new google.maps.Geocoder();
+	
+	// View layer
+	function printPos() {
+		var pos = map.getCenter();
+		var output = document.getElementById('output');
+		var s = "" + pos + " " + map.getZoom() + "\n\n";
+		/*
+<a href=http://goo.gl/maps/h82a target=_blank>
+<img src='http://maps.google.com/maps/api/staticmap?center=&zoom=19&size=300x300&maptype=roadmap&markers=color:red|label:.|35.946033,136.18545&sensor=false'>
+<img src='http://maps.google.com/maps/api/staticmap?center=&zoom=14&size=300x300&maptype=roadmap&markers=color:red|label:.|35.946033,136.18545&sensor=false'><br>
+鯖江市らてんぽの場所はこちら<br>
+</a>
+		*/
+		var ll = pos.lat() + "," + pos.lng();
+		s += "<a href='http://maps.google.co.jp/maps?hl=ja&ll=" + ll + "&z=19' target=_blank>\n";
+		s += "<img src='http://maps.google.com/maps/api/staticmap?center=&zoom=19&size=300x300&maptype=roadmap&markers=color:red|label:.|" + ll + "&sensor=false'>\n";
+		s += "<img src='http://maps.google.com/maps/api/staticmap?center=&zoom=14&size=300x300&maptype=roadmap&markers=color:red|label:.|" + ll + "&sensor=false'><br>\n";
+		s += "</a>";
+		output.value = s;
+	}
+	var movestack = new Array();
+	function popMove() {
+		var move = movestack.pop();
+		map.setCenter(move[0]);
+		map.setZoom(move[1]);
+	}
+	function pushMove() {
+		movestack.push([ map.getCenter(), map.getZoom() ]);
+	}
+	
+	kcmap.load = function() {
+//		var mapinit = [ 36.208823, 138.251953, 5 ]; // 日本全体
+		var mapinit = [ 35.95772179080197, 136.21261584179686, 13 ]; // 鯖江全体
+		
+		map = new google.maps.Map(document.getElementById("map-canvas"), {
+			center: new google.maps.LatLng(mapinit[0], mapinit[1]),
+			zoom: mapinit[2],
+			mapTypeId: google.maps.MapTypeId.ROADMAP
+//			mapTypeId: google.maps.MapTypeId.HYBRID
+		});
+		google.maps.event.addListener(map, 'click', function(evt) {
+			/*
+			var pos = evt.latLng;
+			var marker = new google.maps.Marker({ map: map, position: pos });
+//			map.setCenter(pos);
+			*/
+			printPos();
+		});
+		
+		/*
+		var f = function(n) {
+			var ss = document.getElementById('input').value;
+			var s = getLine(ss, n);
+			if (s == null)
+				return;
+//			alert(s);
+			getGeo(s, function() { f(n + 1) });
+		};
+		f(0);
+		*/
+		var ss = document.getElementById('input').value;
+//		for (var i = 0;; i++) {
+		var f = function(n) {
+			var s = getLine(ss, n);
+			if (s == null)
+				return;
+			var name = getCol(s, 0);
+			var tel = getCol(s, 1);
+			var ad = getCol(s, 2);
+			var pos = makePos(getCol(s, 3));
+			var twitpic = getCol(s, 4);
+			var price = getCol(s, 5);
+			
+			var col = 'white';
+			
+			var content =
+				name + "<br>" +
+				"<a href=tel:" + tel + ">" + tel + "</a><br>" +
+				ad + "<br>";
+			if (twitpic != null && twitpic.length > 0) {
+				content +=
+					"<a href=" + twitpic + " target=_blank>" + 
+					"<img src=http://twitpic.com/show/thumb/" + twitpic.substring(19) + " width=150 height=150></a><br>";
+				col = 'red';
+			}
+			if (price != null && price.length > 0) {
+				content += price + "円";
+			}
+			
+			var marker = new google.maps.Marker({ map: map, position: pos, title: name, icon: getIcon(col), shadow: getIconShadow() });
+			
+			google.maps.event.addListener(marker, 'click', function() {
+				if (infoWindow) {
+					infoWindow.close();
+					movestack.pop();
+				}
+				kcmap.move(pos.lat(), pos.lng(), 19);
+				
+				infoWindow = new google.maps.InfoWindow({
+					content: content
+				});
+				infoWindow.open(map, this);
+				google.maps.event.addListener(infoWindow, 'closeclick', function() { popMove(); });
+			});
+			f(n + 1);
+		};
+		f(0);
+	}
+	makePos = function(ll) {
+		if (ll == null)
+			return null;
+		var n = ll.indexOf(',');
+		var lat = ll.substring(0, n);
+		var lng = ll.substring(n + 1);
+		return new google.maps.LatLng(lat, lng);
+	}
+	getGeo = function(s, nextf) {
+		var ad = getCol(s, 2);
+//		alert(s + " -> " + ad);
+		geocoder.geocode({ 'address' : ad }, function(res, st) {
+			if (st == google.maps.GeocoderStatus.OK) {
+				var pos = res[0].geometry.location;
+				document.getElementById('output').value += s + "\t" + pos + "\n";
+				nextf();
+			}
+		});
+	}
+	getCol = function(s, n) {
+		return getPartString(s, n, '\t');
+	}
+	getLine = function(s, n) {
+		return getPartString(s, n, '\n');
+	}
+	getPartString = function(s, n, c) {
+		var st = 0;
+		for (var i = 0; i < n; i++) {
+			var m = s.indexOf(c, st);
+			if (m < 0)
+				return null;
+			st = m + 1;
+		}
+		var m = s.indexOf(c, st);
+		if (m < 0)
+			m = s.length;
+		return s.substring(st, m);
+	}
+	// red blue green yellow purple orange white gray black
+	getIcon = function(col) {
+		var image = new google.maps.MarkerImage(
+			'http://labs.google.com/ridefinder/images/mm_20_' + col + '.png',
+	    	new google.maps.Size(12, 20),
+	    	new google.maps.Point(0, 0),
+	    	new google.maps.Point(6, 20)
+	    );
+	    return image;
+	}
+	getIconShadow = function() {
+		var shadow = new google.maps.MarkerImage(
+			'http://labs.google.com/ridefinder/images/mm_20_shadow.png',
+	    	new google.maps.Size(22, 20),
+	    	new google.maps.Point(0, 0),
+	    	new google.maps.Point(6, 20)
+	    );
+	    return shadow;
+	}
+	kcmap.move = function(lat, lng, zoom) {
+		if (zoom == null)
+			zoom = 14;
+		pushMove();
+		var pos = new google.maps.LatLng(lat, lng);
+		map.panTo(pos);
+		map.setZoom(zoom);
+		var pos1 = new google.maps.LatLng(lat - .1, lng - .1);
+		var pos2 = new google.maps.LatLng(lat + .1, lng + .1);
+		var bnd = new google.maps.LatLngBounds(pos1, pos2);
+//		map.panToBounds(bnd);
+	}
+	kcmap.search = function() {
+		var s = document.getElementById('searchtxt').value;
+//		alert(s);
+
+		geocoder.geocode({ 'address' : s }, function(results, status) {
+			if (status == google.maps.GeocoderStatus.OK) {
+				map.setCenter(results[0].geometry.location);
+				var pos = results[0].geometry.location;
+//				var marker = new google.maps.Marker({ map: map, position: pos });
+				
+				/*
+				google.maps.event.addListener(marker, 'click', function() {
+					if (infoWindow) {
+						infoWindow.close();
+						movestack.pop();
+					}
+					var pos = entry['緯度経度'];
+					kcmap.move(pos.lat(), pos.lng());
+					infoWindow = new google.maps.InfoWindow({
+						content:
+							"<a href=\"" + entry['url'] + "\">" + entry['名称'] + "</a>"
+					});
+					infoWindow.open(map, this);
+					google.maps.event.addListener(infoWindow, 'closeclick', function() { popMove(); });
+				});
+				*/
+				map.setCenter(pos);
+				printPos();
+			} else {
+				alert("Geocode was not successful for the following reason: " + status);
+			}
+		});
+		return false;
+	}
+})();
+
+</script>
+<style>
+h1 {
+	font-size: 20px;
+	margin: 5px 0px 5px 0px;
+}
+#input {
+	display: none; /* inline-block */
+}
+#output {
+	display: none; /* inline-block */
+}
+#map-canvas {
+	height: 500px;
+}
+#footer {
+	font-size: 70%;
+}
+</style>
+</head>
+<body onload="kcmap.load()">
+
+<h1>福井 水ようかんマップ - 鯖江編（つくりかけ）</h1>
+住所検索 <input type=text id='searchtxt' style='width:300px'><button onclick='kcmap.search()' id='searchbtn'>search</button><br>
+<div id="map-canvas">Google map comes here.</div>
+<br>
+<textarea id='input' style="width:48%;height:500px;vertical-align:top">福寿堂	0778-51-0474	福井県鯖江市桜町２丁目６−１２	35.9468406,136.1811359	http://twitpic.com/3ocrwb	550
+大黒屋	0778-51-0451	福井県鯖江市本町２丁目１−１３	35.9462492,136.1855772	http://twitpic.com/3octm6	630
+萬年堂	0778-51-0230	福井県鯖江市本町１丁目２−１３	35.9451105,136.1859272	http://twitpic.com/3ocv2o	650
+栄進堂	0778-51-0471	福井県鯖江市本町２丁目３−３	35.9454687,136.184144	http://twitpic.com/3ocwgc	680
+弁慶堂	0778-51-0179	福井県鯖江市柳町４丁目１−１６	35.9466076,136.1909183	http://twitpic.com/3ocysh	650
+やまはつ	0778-51-1162	福井県鯖江市北野町２丁目１９－２０	35.9668348,136.1804326	http://twitpic.com/3ooszt	630
+福音堂	0778-65-0158	福井県鯖江市河和田町１９－１－９	35.9515249,136.2736896
+昭和堂	0778-51-0458	福井県鯖江市本町１丁目１－２１	35.9441301,136.1858745	http://twitpic.com/3oopr4	680
+松月堂	0778-62-1303	福井県鯖江市下野田町２８－５０	35.9440291,136.1519776
+山海堂	0778-65-0044	福井県鯖江市河和田町２０－７	35.9509834,136.2717898
+桂月堂	0778-51-8723	福井県鯖江市下河端町１６－１６－１	35.9692486,136.1894622	http://twitpic.com/3op7mx	480
+うさぎや	0778-62-0861	福井県鯖江市持明寺町５－１０－１	35.9635734,136.1476218
+安価堂	0778-51-1235	福井県鯖江市神中町１丁目２－１５	35.9687989,136.1955863	http://twitpic.com/3opgct	650
+えがわ	0776-22-4952	福井県福井市照手３丁目６－１４	36.0678636,136.2071673
+木村餅店	0776-82-0318	福井県坂井市三国町覚善８－５８－４	36.2199032,136.1587283		550
+風月堂	0778-34-0062	福井県丹生郡越前町西田中８−３４	35.9767243,136.129023		630
+竹内菓子舗	0776-36-2456	福井県福井市花堂北２丁目１５−６	36.0409535,136.2130206		630
+香華堂	0776-22-3457	福井県福井市順化２丁目１５−１３	36.0658055,136.2130084		546
+栄雲堂	0778-22-0326	福井県越前市京町１丁目１−２	35.9030818,136.1652692		780
+柿谷商店	0778-22-0249	福井県越前市矢放町７−９−５	35.8869176,136.1809461		400
+丸屋松月堂	0779-88-0573	福井県勝山市本町２丁目２−２４	36.0601061,136.4992176		700
+たつの	0776-22-4693	福井県福井市御幸１丁目１６−３１	36.0573738,136.2293935		600
+江ざ志	0778-22-6047	福井県越前市芝原４丁目５−１７	35.9185658,136.1569945
+</textarea>
+<textarea id='output' style="width:48%;height:500px;vertical-align:top"></textarea>
+
+<!--
+有竹御菓子店	0778-51-3220	福井県鯖江市三六町２丁目６－２４	35.9730228,136.1785575	販売店、OEMで仕入れている
+正華堂	0778-51-1886	福井県鯖江市西山町１－７	35.9534425,136.1834605	やってない？
+清雲堂	0778-51-0728	福井県鯖江市深江町８－１１	35.9405917,136.1836303	やってない？
+-->
+
+<iframe src="http://www.facebook.com/plugins/like.php?href=http%3A%2F%2Ffukuno.jig.jp%2Fmizuyokan%2F&amp;layout=standard&amp;show_faces=true&amp;width=450&amp;action=like&amp;colorscheme=light&amp;height=80" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:450px; height:80px;" allowTransparency="true"></iframe>
+
+<hr>
+<div id='footer'>
+<a href=http://fukuno.jig.jp/ target=_blank>(C)福野泰介</a> <a href=http://twitter.com/taisukef target=_blank>@taisukef</a>
+</div>
+</body>
+</html>
