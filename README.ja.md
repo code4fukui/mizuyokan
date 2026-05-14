@@ -4,7 +4,7 @@
 
 ## デモ
 
-**ライブアプリケーション: [https://code4fukui.github.io/mizuyokan/](https://code4fukui.github.io/mizuyokan/)**
+**ライブアプリケーション: [https://github.com/code4fukui/mizuyokan](https://github.com/code4fukui/mizuyokan)**
 
 ユーザーインターフェースには、店舗の位置を示すピンが配置されたインタラクティブなマップが表示されます。ピンをクリックすると、店舗名、住所、電話番号、価格、水ようかんの写真がポップアップで表示されます。マップと並んで、フィルタリングや並べ替えが可能な全店舗データのテーブルも表示されます。
 

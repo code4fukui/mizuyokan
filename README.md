@@ -6,7 +6,7 @@ A web map of "mizuyokan" (a traditional Japanese winter confection) shops in Fuk
 
 ## Demo
 
-**Live Application: [https://code4fukui.github.io/mizuyokan/](https://code4fukui.github.io/mizuyokan/)**
+**Live Application: [https://github.com/code4fukui/mizuyokan](https://github.com/code4fukui/mizuyokan)**
 
 The user interface displays an interactive map with pins marking shop locations. Clicking a pin reveals a popup with the shop's name, address, phone number, price, and a photo of its mizuyokan. A filterable, sortable table of all shop data is shown alongside the map.
 
